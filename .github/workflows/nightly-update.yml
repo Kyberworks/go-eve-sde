@@ -69,6 +69,10 @@ jobs:
           head -1 "$jsonl_file" | quicktype --lang go --package "${base_name}" --src - --out "models/${base_name}/${base_name}.go"
         done
 
+    - name: Tidy Go modules
+      if: steps.check-update.outputs.updated == 'true'
+      run: go mod tidy
+
     - name: Generate Go data
       if: steps.check-update.outputs.updated == 'true'
       run: go run generate_data.go
