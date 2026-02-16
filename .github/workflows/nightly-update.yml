@@ -62,12 +62,16 @@ jobs:
     - name: Generate Go structs
       if: steps.check-update.outputs.updated == 'true'
       run: |
-        mkdir -p models
         for jsonl_file in *.jsonl; do
           base_name=$(basename "$jsonl_file" .jsonl)
+          mkdir -p "models/${base_name}"
           echo "Generating struct for $base_name"
-          head -1 "$jsonl_file" | quicktype --lang go --src - --out "models/${base_name}.go"
+          head -1 "$jsonl_file" | quicktype --lang go --package "${base_name}" --src - --out "models/${base_name}/${base_name}.go"
         done
+
+    - name: Generate Go data
+      if: steps.check-update.outputs.updated == 'true'
+      run: go run generate_data.go
 
     - name: Format Go code
       if: steps.check-update.outputs.updated == 'true'
@@ -100,7 +104,7 @@ jobs:
         name: SDE Build ${{ steps.check-update.outputs.build }}
         body: |
           Automated update to EVE SDE build ${{ steps.check-update.outputs.build }}
-          
+
           This release contains the latest Go models generated from the EVE Online Static Data Export.
         draft: false
         prerelease: false

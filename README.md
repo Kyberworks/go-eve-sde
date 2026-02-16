@@ -10,15 +10,16 @@ Add this module to your Go project:
 go get github.com/Kyberworks/go-eve-sde@v1.23456  # Replace with desired build version
 ```
 
-Then import and use the models:
+Then import and use the models and data:
 
 ```go
-import "github.com/Kyberworks/go-eve-sde/models"
+import "github.com/Kyberworks/go-eve-sde/models/types"
 
 func main() {
-    // Example usage
-    var item models.InvType
-    // ... populate from JSON or database
+    // Access the types data directly
+    for _, item := range types.TypesData {
+        fmt.Println(item.TypeName)
+    }
 }
 ```
 
@@ -33,8 +34,9 @@ The repository is updated nightly at 2 AM UTC via a GitHub Action that:
 1. Checks the latest SDE build number from https://developers.eveonline.com/static-data/tranquility/latest.jsonl
 2. If the build number has changed, downloads the latest official SDE JSONL zip from CCP
 3. Extracts the JSONL data files
-4. Generates Go structs using `quicktype` from sample JSON objects
-5. Commits any changes with the new build number
+4. Generates Go structs using `quicktype` from sample JSON objects, each in its own package
+5. Generates Go data variables with the actual SDE values in the respective packages
+6. Commits any changes with the new build number
 
 ## Releases
 
