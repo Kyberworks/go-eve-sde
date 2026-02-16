@@ -1,0 +1,108 @@
+name: Nightly SDE Update
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Run daily at 2 AM UTC
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  update-sde:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Install jq
+      run: sudo apt-get update && sudo apt-get install -y jq
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install quicktype
+      run: npm install -g quicktype
+
+    - name: Check for SDE updates
+      id: check-update
+      run: |
+        wget -q -O latest.jsonl "https://developers.eveonline.com/static-data/tranquility/latest.jsonl"
+        CURRENT_BUILD=$(head -1 latest.jsonl | jq -r '.buildNumber')
+        echo "Current build: $CURRENT_BUILD"
+        if [ -f .last_build ]; then
+          LAST_BUILD=$(cat .last_build)
+          echo "Last build: $LAST_BUILD"
+          if [ "$CURRENT_BUILD" = "$LAST_BUILD" ]; then
+            echo "No update needed"
+            echo "updated=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        fi
+        echo "$CURRENT_BUILD" > .last_build
+        echo "updated=true" >> $GITHUB_OUTPUT
+        echo "build=$CURRENT_BUILD" >> $GITHUB_OUTPUT
+
+    - name: Download latest SDE
+      if: steps.check-update.outputs.updated == 'true'
+      run: |
+        wget -q -O sde-jsonl.zip "https://developers.eveonline.com/static-data/eve-online-static-data-latest-jsonl.zip"
+
+    - name: Extract SDE
+      if: steps.check-update.outputs.updated == 'true'
+      run: |
+        unzip sde-jsonl.zip
+        ls -la
+
+    - name: Generate Go structs
+      if: steps.check-update.outputs.updated == 'true'
+      run: |
+        mkdir -p models
+        for jsonl_file in *.jsonl; do
+          base_name=$(basename "$jsonl_file" .jsonl)
+          echo "Generating struct for $base_name"
+          head -1 "$jsonl_file" | quicktype --lang go --src - --out "models/${base_name}.go"
+        done
+
+    - name: Format Go code
+      if: steps.check-update.outputs.updated == 'true'
+      run: go fmt ./models/...
+
+    - name: Check for changes
+      if: steps.check-update.outputs.updated == 'true'
+      id: verify-changed-files
+      run: |
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "changed=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Commit and push changes
+      if: steps.verify-changed-files.outputs.changed == 'true'
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add models/ .last_build
+        git commit -m "Update SDE models to build ${{ steps.check-update.outputs.build }}"
+        git push
+
+    - name: Create release
+      if: steps.verify-changed-files.outputs.changed == 'true'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.check-update.outputs.build }}
+        name: SDE Build ${{ steps.check-update.outputs.build }}
+        body: |
+          Automated update to EVE SDE build ${{ steps.check-update.outputs.build }}
+          
+          This release contains the latest Go models generated from the EVE Online Static Data Export.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
