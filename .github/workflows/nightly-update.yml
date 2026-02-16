@@ -64,22 +64,27 @@ jobs:
       run: |
         for jsonl_file in *.jsonl; do
           base_name=$(basename "$jsonl_file" .jsonl)
-          mkdir -p "models/${base_name}"
-          echo "Generating struct for $base_name"
-          head -1 "$jsonl_file" | quicktype --lang go --package "${base_name}" --src - --out "models/${base_name}/${base_name}.go"
+          if [ "$base_name" = "_sde" ]; then
+            package_name="sde"
+          else
+            package_name="$base_name"
+          fi
+          mkdir -p "models/${package_name}"
+          echo "Generating struct for $base_name with package $package_name"
+          head -1 "$jsonl_file" | quicktype --lang go --package "${package_name}" --src - --out "models/${package_name}/${base_name}.go"
         done
-
-    - name: Tidy Go modules
-      if: steps.check-update.outputs.updated == 'true'
-      run: go mod tidy
-
-    - name: Generate Go data
-      if: steps.check-update.outputs.updated == 'true'
-      run: go run generate_data.go
 
     - name: Format Go code
       if: steps.check-update.outputs.updated == 'true'
       run: go fmt ./models/...
+
+    - name: Build models
+      if: steps.check-update.outputs.updated == 'true'
+      run: go build ./models/...
+
+    - name: Generate Go data
+      if: steps.check-update.outputs.updated == 'true'
+      run: go run generate_data.go
 
     - name: Check for changes
       if: steps.check-update.outputs.updated == 'true'

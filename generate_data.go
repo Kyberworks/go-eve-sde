@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	sdePkg "github.com/Kyberworks/go-eve-sde/models/_sde"
+	sdePkg "github.com/Kyberworks/go-eve-sde/models/sde"
 	agentTypesPkg "github.com/Kyberworks/go-eve-sde/models/agentTypes"
 	agentsInSpacePkg "github.com/Kyberworks/go-eve-sde/models/agentsInSpace"
 	ancestriesPkg "github.com/Kyberworks/go-eve-sde/models/ancestries"
@@ -73,6 +73,17 @@ func capitalize(s string) string {
 }
 
 func main() {
+	packageMap := map[string]string{
+		"_sde": "sde",
+		// others default to base
+	}
+	getPackage := func(base string) string {
+		if p, ok := packageMap[base]; ok {
+			return p
+		}
+		return base
+	}
+
 	typeMap := map[string]reflect.Type{
 		"agentTypes":               reflect.TypeOf(agentTypesPkg.AgentTypes{}),
 		"agentsInSpace":            reflect.TypeOf(agentsInSpacePkg.AgentsInSpace{}),
@@ -153,10 +164,11 @@ func main() {
 				json.Unmarshal([]byte(line), elemPtr.Interface())
 				slice = reflect.Append(slice, elemPtr.Elem())
 			}
-			outFile := fmt.Sprintf("models/%s/data.go", base)
-			os.MkdirAll(fmt.Sprintf("models/%s", base), 0755)
+			packageName := getPackage(base)
+			outFile := fmt.Sprintf("models/%s/data.go", packageName)
+			os.MkdirAll(fmt.Sprintf("models/%s", packageName), 0755)
 			f, _ := os.Create(outFile)
-			fmt.Fprintf(f, "package %s\n\n", base)
+			fmt.Fprintf(f, "package %s\n\n", packageName)
 			fmt.Fprintf(f, "var %sData = %#v\n", capitalize(base), slice.Interface())
 			f.Close()
 			fmt.Printf("Generated %s\n", outFile)
