@@ -56,12 +56,14 @@ jobs:
     - name: Extract SDE
       if: steps.check-update.outputs.updated == 'true'
       run: |
-        unzip sde-jsonl.zip
-        ls -la
+        mkdir temp_sde
+        unzip sde-jsonl.zip -d temp_sde
+        ls -la temp_sde
 
     - name: Generate Go structs
       if: steps.check-update.outputs.updated == 'true'
       run: |
+        cd temp_sde
         for jsonl_file in *.jsonl; do
           base_name=$(basename "$jsonl_file" .jsonl)
           if [ "$base_name" = "_sde" ]; then
@@ -69,9 +71,9 @@ jobs:
           else
             package_name="$base_name"
           fi
-          mkdir -p "models/${package_name}"
+          mkdir -p "../models/${package_name}"
           echo "Generating struct for $base_name with package $package_name"
-          head -1 "$jsonl_file" | quicktype --lang go --package "${package_name}" --src - --out "models/${package_name}/${base_name}.go"
+          head -1 "$jsonl_file" | quicktype --lang go --package "${package_name}" --src - --out "../models/${package_name}/${base_name}.go"
         done
 
     - name: Format Go code
@@ -85,6 +87,10 @@ jobs:
     - name: Generate Go data
       if: steps.check-update.outputs.updated == 'true'
       run: go run generate_data.go
+
+    - name: Cleanup temp files
+      if: steps.check-update.outputs.updated == 'true'
+      run: rm -rf temp_sde
 
     - name: Check for changes
       if: steps.check-update.outputs.updated == 'true'

@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"strings"
 
-	sdePkg "github.com/Kyberworks/go-eve-sde/models/sde"
 	agentTypesPkg "github.com/Kyberworks/go-eve-sde/models/agentTypes"
 	agentsInSpacePkg "github.com/Kyberworks/go-eve-sde/models/agentsInSpace"
 	ancestriesPkg "github.com/Kyberworks/go-eve-sde/models/ancestries"
@@ -52,6 +51,7 @@ import (
 	planetResourcesPkg "github.com/Kyberworks/go-eve-sde/models/planetResources"
 	planetSchematicsPkg "github.com/Kyberworks/go-eve-sde/models/planetSchematics"
 	racesPkg "github.com/Kyberworks/go-eve-sde/models/races"
+	sdePkg "github.com/Kyberworks/go-eve-sde/models/sde"
 	skinLicensesPkg "github.com/Kyberworks/go-eve-sde/models/skinLicenses"
 	skinMaterialsPkg "github.com/Kyberworks/go-eve-sde/models/skinMaterials"
 	skinsPkg "github.com/Kyberworks/go-eve-sde/models/skins"
@@ -143,7 +143,7 @@ func main() {
 		"_sde":                     reflect.TypeOf(sdePkg.Sde{}),
 	}
 
-	files, _ := os.ReadDir(".")
+	files, _ := os.ReadDir("temp_sde")
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".jsonl") {
 			base := strings.TrimSuffix(file.Name(), ".jsonl")
@@ -152,7 +152,7 @@ func main() {
 				fmt.Printf("Skipping %s\n", base)
 				continue
 			}
-			data, _ := os.ReadFile(file.Name())
+			data, _ := os.ReadFile("temp_sde/" + file.Name())
 			lines := strings.Split(strings.TrimSpace(string(data)), "\n")
 			sliceType := reflect.SliceOf(typ)
 			slice := reflect.MakeSlice(sliceType, 0, len(lines))
