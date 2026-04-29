@@ -20,10 +20,11 @@ func (r *MercenaryTacticalOperations) Marshal() ([]byte, error) {
 
 type MercenaryTacticalOperations struct {
 	Key               int64       `json:"_key"`
-	AnarchyImpact     int64       `json:"anarchy_impact"`
+	AnarchyImpact     int64       `json:"anarchyImpact"`
 	Description       Description `json:"description"`
-	DevelopmentImpact int64       `json:"development_impact"`
-	InfomorphBonus    int64       `json:"infomorph_bonus"`
+	DevelopmentImpact int64       `json:"developmentImpact"`
+	DungeonID         int64       `json:"dungeonID"`
+	InfomorphBonus    int64       `json:"infomorphBonus"`
 	Name              Description `json:"name"`
 }
 
